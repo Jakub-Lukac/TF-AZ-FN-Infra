@@ -174,7 +174,7 @@ resource "azurerm_key_vault_secret" "app_conf_hubname" {
 
 
 #------------------------------------------------------
-# PART 4 : Create Azure Function
+# PART 4 : Create Azure Function related resources
 #------------------------------------------------------
 
 resource "azurerm_storage_account" "fn_st" {
@@ -229,4 +229,84 @@ resource "azurerm_application_insights_smart_detection_rule" "smart_detection" {
   name                    = "Slow server response time"
   application_insights_id = azurerm_application_insights.application_insights.id
   enabled                 = false
+}
+
+#------------------------------------------------------
+# PART 5 : Create Azure Function
+#------------------------------------------------------
+
+resource "azurerm_windows_function_app" "fn" {
+  name                       = var.fn_name
+  resource_group_name        = azurerm_resource_group.main.name
+  location                   = azurerm_resource_group.main.location
+  service_plan_id            = azurerm_service_plan.fn_sp.id
+  storage_account_name       = azurerm_storage_account.fn_st.name
+  storage_account_access_key = azurerm_storage_account.fn_st.primary_access_key
+
+  lifecycle {
+    ignore_changes = [tags]
+  }
+
+  identity {
+    type = "SystemAssigned"
+  }
+
+  site_config {
+    application_stack {
+      dotnet_version              = "v8.0"
+      use_dotnet_isolated_runtime = true
+    }
+
+    cors {
+      allowed_origins = [
+        "https://portal.azure.com",
+        "https://${var.fn_name}.azurewebsites.net"
+      ]
+    }
+  }
+
+  # https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/windows_function_app#auth_settings_v2
+  auth_settings_v2 {
+    auth_enabled           = true
+    require_authentication = true
+    default_provider       = "AzureActiveDirectory"
+    unauthenticated_action = "RedirectToLoginPage"
+
+    # https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/windows_function_app#active_directory_v2
+    active_directory_v2 {
+      tenant_auth_endpoint       = "https://login.microsoftonline.com/${data.azurerm_client_config.current.tenant_id}/v2.0"
+      client_secret_setting_name = "CONF_APP_SECRET"
+      client_id                  = azuread_application.app.application_id
+    }
+
+    login {
+      token_store_enabled = true
+    }
+  }
+
+   app_settings = {
+    "CONF_APP_ID"                     = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.fnkv.name};SecretName=${azurerm_key_vault_secret.app_conf_app_id.name})",
+    "CONF_APP_SECRET"                 = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.fnkv.name};SecretName=${azurerm_key_vault_secret.app_conf_app_secret.name})",
+    "CONF_TENANT_ID"                  = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.fnkv.name};SecretName=${azurerm_key_vault_secret.app_conf_tenant_id.name})",
+    "CONF_EVENTHUB_ENABLED"           = "${var.eventhub_enabled}",
+    "CONF_EVENTHUB_CONNECTION_STRING" = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.fnkv.name};SecretName=${azurerm_key_vault_secret.app_conf_hubconnection.name})",
+    "CONF_EVENTHUB_NAME"              = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.fnkv.name};SecretName=${azurerm_key_vault_secret.app_conf_hubname.name})",
+    "APPINSIGHTS_INSTRUMENTATIONKEY"  = "${azurerm_application_insights.application_insights.instrumentation_key}"
+  }
+}
+
+resource "azurerm_key_vault_access_policy" "akv_fn_policy" {
+  key_vault_id = azurerm_key_vault.fnkv.id
+  tenant_id = data.azurerm_client_config.current.tenant_id
+  object_id = azurerm_windows_function_app.fn.identity[0].principal_id 
+
+  # identity refers to this block (list of identities)
+  /* identity {
+    type = "SystemAssigned"
+  } */
+
+  secret_permissions = [
+    "Get",
+    "List"
+  ]
 }
