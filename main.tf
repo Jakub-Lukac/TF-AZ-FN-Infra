@@ -65,8 +65,8 @@ resource "azurerm_key_vault" "fnkv" {
   tenant_id           = data.azurerm_client_config.current.tenant_id
   sku_name            = "standard"
   name                = var.fn_keyvault_name
-  resource_group_name = var.resource_group_name
-  location            = var.resource_group_location
+  resource_group_name = azurerm_resource_group.main.name
+  location            = azurerm_resource_group.main.location
 
   lifecycle {
     ignore_changes = [tags]
@@ -113,4 +113,34 @@ resource "azurerm_key_vault_secret" "app_conf_tenant_id" {
   key_vault_id = azurerm_key_vault.fnkv.id
 
   depends_on = [azurerm_key_vault_access_policy.akv_tf_policy]
+}
+
+#------------------------------------------------------
+# PART 3 : Create Event Hub Namespace + key vault secrets
+#------------------------------------------------------
+
+# namespace - logical container for grouping multiple event hubs
+
+resource "azurerm_eventhub_namespace" "ehns" {
+  count                    = var.eventhub_enabled ? 1 : 0
+  name                     = var.fn_eventhub_namespace_name
+  resource_group_name      = azurerm_resource_group.main.name
+  location                 = azurerm_resource_group.main.location
+  sku                      = "Standard"
+  capacity                 = 2
+  auto_inflate_enabled     = true
+  maximum_throughput_units = 4
+
+  lifecycle {
+    ignore_changes = [tags]
+  }
+}
+
+resource "azurerm_eventhub" "eh" {
+  count = var.eventhub_enabled ? 1 : 0
+  name = var.fn_eventhub_name
+  namespace_name = azurerm_eventhub_namespace.ehns[0].name
+  resource_group_name = azurerm_resource_group.main.name
+  partition_count = 16
+  message_retention = 1
 }
