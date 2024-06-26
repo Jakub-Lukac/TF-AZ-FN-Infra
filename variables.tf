@@ -22,3 +22,15 @@ variable "application_name" {
 variable "environment_name" {
   type = string
 }
+
+variable "resource_group_name" {
+  type = string
+}
+
+variable "resource_group_location" {
+  type = string
+}
+
+variable "fn_keyvault_name" {
+  type = string
+}
