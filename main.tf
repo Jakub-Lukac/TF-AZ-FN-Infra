@@ -144,3 +144,30 @@ resource "azurerm_eventhub" "eh" {
   partition_count = 16
   message_retention = 1
 }
+
+resource "azurerm_eventhub_authorization_rule" "ehpolicy" {
+  count = var.eventhub_enabled ? 1 : 0
+  name = var.fn_eventhub_policy_name
+  namespace_name = azurerm_eventhub_namespace.ehns[0].name
+  eventhub_name = azurerm_eventhub.eh[0].name
+  resource_group_name = azurerm_resource_group.main.name
+  listen = true
+  send = true
+  manage = false
+}
+
+resource "azurerm_key_vault_secret" "app_conf_hubconnection" {
+  name = "conf-hub-connection"
+  value = var.eventhub_enabled ? azurerm_eventhub_authorization_rule.ehpolicy[0].primary_connection_string : ""
+  key_vault_id = azurerm_key_vault.fnkv.id
+
+  depends_on = [ azurerm_key_vault_access_policy.akv_tf_policy ]
+}
+
+resource "azurerm_key_vault_secret" "app_conf_hubname" {
+  name = "conf-hub-name"
+  value = var.eventhub_enabled ? azurerm_eventhub.eh[0].name : ""
+  key_vault_id = azurerm_key_vault.fnkv.id
+
+  depends_on = [ azurerm_key_vault_access_policy.akv_tf_policy ]
+}
