@@ -13,3 +13,12 @@ variable "env_tenant_id" {
 variable "env_subscription_id" {
   type = string
 }
+
+
+variable "application_name" {
+  type = string
+}
+
+variable "environment_name" {
+  type = string
+}
