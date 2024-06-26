@@ -107,8 +107,8 @@ resource "azurerm_key_vault_secret" "app_conf_app_secret" {
   depends_on = [azurerm_key_vault_access_policy.akv_tf_policy]
 }
 
-resource "azurerm_key_vault_secret" "conf_tenant_id" {
-  name         = "conf-app-secret"
+resource "azurerm_key_vault_secret" "app_conf_tenant_id" {
+  name         = "conf-tenant-id"
   value        = data.azurerm_client_config.current.tenant_id
   key_vault_id = azurerm_key_vault.fnkv.id
 
