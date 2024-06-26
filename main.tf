@@ -137,37 +137,96 @@ resource "azurerm_eventhub_namespace" "ehns" {
 }
 
 resource "azurerm_eventhub" "eh" {
-  count = var.eventhub_enabled ? 1 : 0
-  name = var.fn_eventhub_name
-  namespace_name = azurerm_eventhub_namespace.ehns[0].name
+  count               = var.eventhub_enabled ? 1 : 0
+  name                = var.fn_eventhub_name
+  namespace_name      = azurerm_eventhub_namespace.ehns[0].name
   resource_group_name = azurerm_resource_group.main.name
-  partition_count = 16
-  message_retention = 1
+  partition_count     = 16
+  message_retention   = 1
 }
 
 resource "azurerm_eventhub_authorization_rule" "ehpolicy" {
-  count = var.eventhub_enabled ? 1 : 0
-  name = var.fn_eventhub_policy_name
-  namespace_name = azurerm_eventhub_namespace.ehns[0].name
-  eventhub_name = azurerm_eventhub.eh[0].name
+  count               = var.eventhub_enabled ? 1 : 0
+  name                = var.fn_eventhub_policy_name
+  namespace_name      = azurerm_eventhub_namespace.ehns[0].name
+  eventhub_name       = azurerm_eventhub.eh[0].name
   resource_group_name = azurerm_resource_group.main.name
-  listen = true
-  send = true
-  manage = false
+  listen              = true
+  send                = true
+  manage              = false
 }
 
 resource "azurerm_key_vault_secret" "app_conf_hubconnection" {
-  name = "conf-hub-connection"
-  value = var.eventhub_enabled ? azurerm_eventhub_authorization_rule.ehpolicy[0].primary_connection_string : ""
+  name         = "conf-hub-connection"
+  value        = var.eventhub_enabled ? azurerm_eventhub_authorization_rule.ehpolicy[0].primary_connection_string : ""
   key_vault_id = azurerm_key_vault.fnkv.id
 
-  depends_on = [ azurerm_key_vault_access_policy.akv_tf_policy ]
+  depends_on = [azurerm_key_vault_access_policy.akv_tf_policy]
 }
 
 resource "azurerm_key_vault_secret" "app_conf_hubname" {
-  name = "conf-hub-name"
-  value = var.eventhub_enabled ? azurerm_eventhub.eh[0].name : ""
+  name         = "conf-hub-name"
+  value        = var.eventhub_enabled ? azurerm_eventhub.eh[0].name : ""
   key_vault_id = azurerm_key_vault.fnkv.id
 
-  depends_on = [ azurerm_key_vault_access_policy.akv_tf_policy ]
+  depends_on = [azurerm_key_vault_access_policy.akv_tf_policy]
+}
+
+
+#------------------------------------------------------
+# PART 4 : Create Azure Function
+#------------------------------------------------------
+
+resource "azurerm_storage_account" "fn_st" {
+  name                     = var.fn_storage_name
+  resource_group_name      = azurerm_resource_group.main.name
+  location                 = azurerm_resource_group.main.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+
+  lifecycle {
+    ignore_changes = [tags]
+  }
+}
+
+resource "azurerm_service_plan" "fn_sp" {
+  name                = var.fn_plan_name
+  resource_group_name = azurerm_resource_group.main.name
+  location            = azurerm_resource_group.main.location
+  os_type             = "Windows"
+  sku_name            = "Y1"
+
+  lifecycle {
+    ignore_changes = [tags]
+  }
+}
+
+resource "azurerm_log_analytics_workspace" "ws" {
+  name                = var.fn_workspace_name
+  resource_group_name = azurerm_resource_group.main.name
+  location            = azurerm_resource_group.main.location
+  sku                 = "PerGB2018"
+  retention_in_days   = "30"
+
+  lifecycle {
+    ignore_changes = [tags]
+  }
+}
+
+resource "azurerm_application_insights" "application_insights" {
+  name                = var.fn_insights_name
+  resource_group_name = azurerm_resource_group.main.name
+  location            = azurerm_resource_group.main.location
+  application_type    = "web"
+  workspace_id        = azurerm_log_analytics_workspace.ws.id
+
+  lifecycle {
+    ignore_changes = [tags]
+  }
+}
+
+resource "azurerm_application_insights_smart_detection_rule" "smart_detection" {
+  name                    = "Slow server response time"
+  application_insights_id = azurerm_application_insights.application_insights.id
+  enabled                 = false
 }

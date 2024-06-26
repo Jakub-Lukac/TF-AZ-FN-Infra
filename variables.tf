@@ -50,3 +50,19 @@ variable "fn_eventhub_name" {
 variable "fn_eventhub_policy_name" {
   type = string
 }
+
+variable "fn_storage_name" {
+  type = string
+}
+
+variable "fn_plan_name" {
+  type = string
+}
+
+variable "fn_workspace_name" {
+  type = string
+}
+
+variable "fn_insights_name" {
+  type = string
+}
