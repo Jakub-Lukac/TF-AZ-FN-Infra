@@ -34,7 +34,7 @@ resource "azuread_application" "app" {
     }
   }
 
-   web {
+  web {
     homepage_url  = "https://${var.fn_name}.azurewebsites.net"                            #-${var.deployment_name}
     redirect_uris = ["https://${var.fn_name}.azurewebsites.net/.auth/login/aad/callback"] #-${var.deployment_name}
 
