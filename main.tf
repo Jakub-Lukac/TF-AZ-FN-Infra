@@ -242,6 +242,7 @@ resource "azurerm_windows_function_app" "fn" {
   service_plan_id            = azurerm_service_plan.fn_sp.id
   storage_account_name       = azurerm_storage_account.fn_st.name
   storage_account_access_key = azurerm_storage_account.fn_st.primary_access_key
+  zip_deploy_file            = "/.bin/UserChecker-20240628.zip"
 
   lifecycle {
     ignore_changes = [tags]
@@ -284,7 +285,7 @@ resource "azurerm_windows_function_app" "fn" {
     }
   }
 
-   app_settings = {
+  app_settings = {
     "CONF_APP_ID"                     = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.fnkv.name};SecretName=${azurerm_key_vault_secret.app_conf_app_id.name})",
     "CONF_APP_SECRET"                 = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.fnkv.name};SecretName=${azurerm_key_vault_secret.app_conf_app_secret.name})",
     "CONF_TENANT_ID"                  = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.fnkv.name};SecretName=${azurerm_key_vault_secret.app_conf_tenant_id.name})",
@@ -297,8 +298,8 @@ resource "azurerm_windows_function_app" "fn" {
 
 resource "azurerm_key_vault_access_policy" "akv_fn_policy" {
   key_vault_id = azurerm_key_vault.fnkv.id
-  tenant_id = data.azurerm_client_config.current.tenant_id
-  object_id = azurerm_windows_function_app.fn.identity[0].principal_id 
+  tenant_id    = data.azurerm_client_config.current.tenant_id
+  object_id    = azurerm_windows_function_app.fn.identity[0].principal_id
 
   # identity refers to this block (list of identities)
   /* identity {
