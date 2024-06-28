@@ -242,7 +242,7 @@ resource "azurerm_windows_function_app" "fn" {
   service_plan_id            = azurerm_service_plan.fn_sp.id
   storage_account_name       = azurerm_storage_account.fn_st.name
   storage_account_access_key = azurerm_storage_account.fn_st.primary_access_key
-  zip_deploy_file            = "/.bin/UserChecker-20240628.zip"
+  zip_deploy_file            = "./bin/UserChecker-20240628.zip"
 
   lifecycle {
     ignore_changes = [tags]
