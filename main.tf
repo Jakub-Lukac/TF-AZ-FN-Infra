@@ -33,6 +33,16 @@ resource "azuread_application" "app" {
       type = "Role"
     }
   }
+
+   web {
+    homepage_url  = "https://${var.fn_name}.azurewebsites.net"                            #-${var.deployment_name}
+    redirect_uris = ["https://${var.fn_name}.azurewebsites.net/.auth/login/aad/callback"] #-${var.deployment_name}
+
+    implicit_grant {
+      access_token_issuance_enabled = true
+      id_token_issuance_enabled     = true
+    }
+  }
 }
 
 resource "azuread_service_principal" "app_principal" {
