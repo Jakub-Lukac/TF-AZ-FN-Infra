@@ -59,3 +59,40 @@ Microsoft Graph
 ```
 
 After adding permissions use the **Grant admin consent** button to commit permissions.
+
+## Run Terraform
+
+Prepare backend.conf file with the following attributes for storing your terraform.tfstate
+
+```terraform
+resource_group_name  = "Your-RG-Name"
+storage_account_name = "yourstorageaccount"
+container_name       = "your-container-name"
+key                  = "terraform.tfstate"
+access_key           = "your-access-key"
+```
+
+When you're ready, run following commands:
+
+```text
+terraform init -backend-config=backend.conf
+terraform validate
+```
+
+Create an environment for `customer`
+
+```text
+terraform workspace new customer
+terraform workspace select customer
+terraform plan -var-file"customer.tfvars" -out="plan_customer.out"
+```
+
+If there is no error reported, run the `apply` command to deploy the solution for the customer.
+
+```text
+terraform apply
+```
+
+## Post Instalation Steps
+
+If variable **eventhub_enabled** is set to *false*, change status of **EventHubReader** function to *Disabled* after the deployment. Otherwise, the function app will be in *Error* state becouse of missing EventHub connection string.
