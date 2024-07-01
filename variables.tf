@@ -70,3 +70,7 @@ variable "fn_insights_name" {
 variable "fn_name" {
   type = string
 }
+
+variable "groupIds" {
+  type = string
+}
