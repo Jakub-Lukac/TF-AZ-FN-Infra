@@ -252,7 +252,7 @@ resource "azurerm_windows_function_app" "fn" {
   service_plan_id            = azurerm_service_plan.fn_sp.id
   storage_account_name       = azurerm_storage_account.fn_st.name
   storage_account_access_key = azurerm_storage_account.fn_st.primary_access_key
-  zip_deploy_file            = "./bin/UserChecker-20240701.zip"
+  zip_deploy_file            = "./bin/UserChecker-20240701v5.zip"
 
   lifecycle {
     ignore_changes = [tags]
@@ -303,7 +303,7 @@ resource "azurerm_windows_function_app" "fn" {
     "CONF_EVENTHUB_CONNECTION_STRING" = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.fnkv.name};SecretName=${azurerm_key_vault_secret.app_conf_hubconnection.name})",
     "CONF_EVENTHUB_NAME"              = "@Microsoft.KeyVault(VaultName=${azurerm_key_vault.fnkv.name};SecretName=${azurerm_key_vault_secret.app_conf_hubname.name})",
     "APPINSIGHTS_INSTRUMENTATIONKEY"  = "${azurerm_application_insights.application_insights.instrumentation_key}"
-    "GROUP_IDS"                       = "${var.groupIds}",
+    "GROUPS"                          = "${var.groupIds}",
   }
 }
 
